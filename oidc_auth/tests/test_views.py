@@ -1,13 +1,13 @@
 from urlparse import urlparse, parse_qs
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.utils.importlib import import_module
+from importlib import import_module
 from django.test import Client
 from nose import tools
 import mock
 
 from .utils import OIDCTestCase
-from oidc_auth.models import OpenIDProvider, Nonce
+from oidc_auth.models import OpenIDProvider, Nonce, OpenIDUser
 from oidc_auth.settings import oidc_settings
 
 UserModel = get_user_model()
@@ -26,6 +26,7 @@ class TestAuthorizationPhase(OIDCTestCase):
             response = self.client.get('/oidc/login/')
 
         tools.assert_equal(response.status_code, 200)
+        print('Templates:', response.templates)
         tools.assert_true(any(t.name == 'oidc/login.html' for t in response.templates))
 
     @mock.patch('requests.get')
@@ -95,7 +96,8 @@ class TestTokenExchangePhase(OIDCTestCase):
             'refresh_token': '12345',
             'expires_in': 3600,
             'token_type': 'Bearer',
-            'id_token': '12345'
+            'id_token': '12345',
+            'sub': 'foobar'
         }
         post_mock.return_value = response
 
@@ -110,6 +112,7 @@ class TestTokenExchangePhase(OIDCTestCase):
                 jwks_uri='http://a.b/jwks')
 
         user = UserModel.objects.create(username='foobar')
+        OpenIDUser.objects.create(sub='foobar', issuer=provider, user=user)
 
         session = self.client.session
         session['oidc_state'] = state
@@ -168,6 +171,7 @@ class TestTokenExchangePhase(OIDCTestCase):
             session.save()
 
             user = UserModel.objects.create(username='foobar')
+            OpenIDUser.objects.create(sub='foobar', issuer=provider, user=user)
 
             with mock.patch.object(OpenIDProvider, 'verify_id_token') as mock_verify_id_token:
                 mock_verify_id_token.return_value = { 'sub': 'foobar' }
