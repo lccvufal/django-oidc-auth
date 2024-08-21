@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import re_path, include
 from django.contrib import admin
 
 import oidc_auth
@@ -9,8 +9,8 @@ admin.autodiscover()
 
 
 urlpatterns = [
-    path(r'^$', views.index),
-    path(r'^oidc/', include(oidc_auth.urls)),
-    path(r'^admin/', include(admin.site.urls)),
+    re_path(r'^$', views.index),
+    re_path(r'^oidc/', include(oidc_auth.urls)),
+    re_path(r'^admin/', include(admin.site.urls)),
 ]
 
